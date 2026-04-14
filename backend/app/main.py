@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import Database
 from app.speedtest_runner import SpeedtestRunner
+from app.scheduler import SchedulerService
 from app.routers import health, speedtest, servers, scheduler as scheduler_router
 
 
@@ -17,8 +18,13 @@ def create_app(db: Optional[Database] = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         if app.state.db_owner:
             await app.state.db.init()
+            sched = SchedulerService(app.state.db, app.state.runner)
+            app.state.scheduler_service = sched
+            await sched.start()
         yield
         if app.state.db_owner:
+            if hasattr(app.state, "scheduler_service"):
+                app.state.scheduler_service.shutdown()
             await app.state.db.close()
 
     app = FastAPI(title="SpeedTest App", lifespan=lifespan)
