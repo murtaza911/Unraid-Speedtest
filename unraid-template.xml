@@ -2,7 +2,7 @@
 <Container version="2">
   <Name>Unraid-Speedtest</Name>
   <Repository>ghcr.io/murtaza911/unraid-speedtest:latest</Repository>
-  <Registry>https://github.com/murtaza911/Unraid-Speedtest/pkgs/container/unraid-speedtest</Registry>
+  <Registry>https://github.com/users/murtaza911/packages/container/package/unraid-speedtest</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
   <Support>https://github.com/murtaza911/Unraid-Speedtest/issues</Support>
