@@ -1,30 +1,32 @@
 import { useState, useEffect, useCallback } from "react";
-import { runSpeedtest, fetchResults } from "../api";
+import { runSpeedtest, stopSpeedtest, fetchResults, deleteResult, deleteAllResults } from "../api";
 import ServerSelector from "../components/ServerSelector";
 import TestProgress from "../components/TestProgress";
 import ResultCards from "../components/ResultCards";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import SpeedChart from "../components/SpeedChart";
+import ResultsTable from "../components/ResultsTable";
 
 export default function Dashboard() {
   const [serverId, setServerId] = useState(null);
   const [testing, setTesting] = useState(false);
   const [phase, setPhase] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [speedMbps, setSpeedMbps] = useState(0);
+  const [pingMs, setPingMs] = useState(0);
+  const [jitterMs, setJitterMs] = useState(0);
+  const [completedDownload, setCompletedDownload] = useState(null);
+  const [completedUpload, setCompletedUpload] = useState(null);
+  const [serverName, setServerName] = useState("");
   const [lastResult, setLastResult] = useState(null);
-  const [recentResults, setRecentResults] = useState([]);
+  const [results, setResults] = useState([]);
+  const [cancelFn, setCancelFn] = useState(null);
 
-  const loadRecent = useCallback(async () => {
+  const loadResults = useCallback(async () => {
     try {
-      const results = await fetchResults({ limit: 10 });
-      setRecentResults(results);
-      if (results.length > 0 && !lastResult) {
-        setLastResult(results[0]);
+      const data = await fetchResults({ limit: 500 });
+      setResults(data);
+      if (data.length > 0 && !lastResult) {
+        setLastResult(data[0]);
       }
     } catch {
       // ignore
@@ -32,37 +34,80 @@ export default function Dashboard() {
   }, [lastResult]);
 
   useEffect(() => {
-    loadRecent();
-  }, [loadRecent]);
+    loadResults();
+  }, [loadResults]);
 
   const handleRunTest = () => {
     setTesting(true);
     setPhase("connecting");
+    setProgress(0);
+    setSpeedMbps(0);
+    setPingMs(0);
+    setJitterMs(0);
+    setCompletedDownload(null);
+    setCompletedUpload(null);
+    setServerName("");
 
-    runSpeedtest(serverId, (event) => {
+    const cancel = runSpeedtest(serverId, (event) => {
       if (event.type === "status") {
         setPhase(event.data.phase);
+        if (event.data.server_name) {
+          setServerName(
+            `${event.data.server_name} — ${event.data.server_location}`
+          );
+        }
+      } else if (event.type === "progress") {
+        const d = event.data;
+        setPhase(d.phase);
+        setProgress(d.progress || 0);
+
+        if (d.phase === "ping") {
+          setPingMs(d.latency || 0);
+          setJitterMs(d.jitter || 0);
+        } else if (d.phase === "download") {
+          setSpeedMbps(d.speed_mbps || 0);
+          if (d.progress >= 1) {
+            setCompletedDownload(d.speed_mbps);
+          }
+        } else if (d.phase === "upload") {
+          setSpeedMbps(d.speed_mbps || 0);
+          if (d.progress >= 1) {
+            setCompletedUpload(d.speed_mbps);
+          }
+        }
       } else if (event.type === "result") {
         setLastResult(event.data);
         setTesting(false);
         setPhase(null);
-        loadRecent();
-      } else if (event.type === "error") {
+        setCancelFn(null);
+        loadResults();
+      } else if (event.type === "error" || event.type === "stopped") {
         setTesting(false);
         setPhase(null);
+        setCancelFn(null);
       }
     });
+    setCancelFn(() => cancel);
   };
 
-  const chartData = [...recentResults]
-    .reverse()
-    .map((r) => ({
-      date: new Date(r.timestamp).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      download: r.download_mbps,
-    }));
+  const handleStopTest = async () => {
+    if (cancelFn) cancelFn();
+    await stopSpeedtest();
+    setTesting(false);
+    setPhase(null);
+    setCancelFn(null);
+  };
+
+  const handleDelete = async (id) => {
+    await deleteResult(id);
+    loadResults();
+  };
+
+  const handleClearAll = async () => {
+    await deleteAllResults();
+    setResults([]);
+    setLastResult(null);
+  };
 
   return (
     <div>
@@ -70,66 +115,40 @@ export default function Dashboard() {
       <div className="flex items-end gap-4 mb-8">
         <ServerSelector value={serverId} onChange={setServerId} />
         <button
-          onClick={handleRunTest}
-          disabled={testing}
+          onClick={testing ? handleStopTest : handleRunTest}
           className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-colors whitespace-nowrap ${
             testing
-              ? "bg-slate-700 text-slate-400 cursor-not-allowed"
+              ? "bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30"
               : "bg-sky-400 text-slate-900 hover:bg-sky-300"
           }`}
         >
-          {testing ? "Running..." : "Run Test"}
+          {testing ? "Stop" : "Run Test"}
         </button>
       </div>
 
-      {/* Progress indicator */}
-      {testing && <TestProgress phase={phase} />}
+      {/* Animated progress ring */}
+      {testing && (
+        <TestProgress
+          phase={phase}
+          progress={progress}
+          speedMbps={speedMbps}
+          pingMs={pingMs}
+          jitterMs={jitterMs}
+          completedDownload={completedDownload}
+          completedUpload={completedUpload}
+          serverName={serverName}
+        />
+      )}
 
       {/* Result cards */}
-      <ResultCards result={lastResult} />
+      {!testing && <ResultCards result={lastResult} />}
 
-      {/* Mini history chart */}
-      {chartData.length > 0 && (
-        <div className="bg-slate-800 rounded-xl p-5">
-          <div className="flex justify-between items-center mb-4">
-            <span className="text-sm font-semibold text-slate-200">
-              Recent History
-            </span>
-            <a
-              href="/history"
-              className="text-xs text-sky-400 hover:text-sky-300 transition-colors"
-            >
-              View All →
-            </a>
-          </div>
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={chartData}>
-              <XAxis
-                dataKey="date"
-                tick={{ fill: "#475569", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis hide />
-              <Tooltip
-                contentStyle={{
-                  background: "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: 8,
-                  color: "#e2e8f0",
-                  fontSize: 13,
-                }}
-                formatter={(val) => [`${val} Mbps`, "Download"]}
-              />
-              <Bar
-                dataKey="download"
-                fill="#38bdf8"
-                radius={[4, 4, 0, 0]}
-                opacity={0.8}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* History chart + table */}
+      {!testing && results.length > 0 && (
+        <>
+          <SpeedChart data={results} />
+          <ResultsTable results={results} onDelete={handleDelete} onClearAll={handleClearAll} />
+        </>
       )}
     </div>
   );

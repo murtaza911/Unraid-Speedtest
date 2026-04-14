@@ -102,6 +102,11 @@ class Database:
         await self._conn.commit()
         return cursor.rowcount > 0
 
+    async def delete_all_results(self) -> int:
+        cursor = await self._conn.execute("DELETE FROM test_results")
+        await self._conn.commit()
+        return cursor.rowcount
+
     async def add_favorite(self, server_id: int, name: str, location: str):
         await self._conn.execute(
             "INSERT OR REPLACE INTO favorite_servers (server_id, name, location) VALUES (?, ?, ?)",

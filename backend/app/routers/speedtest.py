@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+import asyncio
+
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
@@ -23,8 +25,19 @@ async def run_speedtest(request: Request, server_id: Optional[int] = Query(None)
             if event["type"] == "result":
                 await db.insert_result(**event["data"], triggered_by="manual")
             yield {"event": event["type"], "data": json.dumps(event["data"])}
+            if event["type"] == "progress":
+                await asyncio.sleep(0)  # yield control for SSE flush
 
     return EventSourceResponse(event_stream())
+
+
+@router.post("/speedtest/stop")
+async def stop_speedtest(request: Request):
+    runner = request.app.state.runner
+    if not runner.is_running:
+        return JSONResponse(status_code=409, content={"detail": "No test is running"})
+    await runner.stop_test()
+    return {"status": "stopped"}
 
 
 @router.get("/results")
@@ -53,6 +66,13 @@ async def get_result(request: Request, result_id: int):
     if result is None:
         return JSONResponse(status_code=404, content={"detail": "Result not found"})
     return result
+
+
+@router.delete("/results")
+async def delete_all_results(request: Request):
+    db = request.app.state.db
+    count = await db.delete_all_results()
+    return {"status": "deleted", "count": count}
 
 
 @router.delete("/results/{result_id}")
