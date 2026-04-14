@@ -1,6 +1,5 @@
 import { Routes, Route, NavLink } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
-import History from "./pages/History";
 import Settings from "./pages/Settings";
 
 function NavBar() {
@@ -21,9 +20,6 @@ function NavBar() {
           <NavLink to="/" end className={linkClass}>
             Dashboard
           </NavLink>
-          <NavLink to="/history" className={linkClass}>
-            History
-          </NavLink>
           <NavLink to="/settings" className={linkClass}>
             Settings
           </NavLink>
@@ -41,7 +37,6 @@ export default function App() {
       <main className="max-w-6xl mx-auto px-6 py-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>

@@ -11,6 +11,16 @@ export async function deleteResult(id) {
   return res.json();
 }
 
+export async function deleteAllResults() {
+  const res = await fetch(`${BASE}/results`, { method: "DELETE" });
+  return res.json();
+}
+
+export async function stopSpeedtest() {
+  const res = await fetch(`${BASE}/speedtest/stop`, { method: "POST" });
+  return res.json();
+}
+
 export function runSpeedtest(serverId, onEvent) {
   const url = serverId
     ? `${BASE}/speedtest/run?server_id=${serverId}`
@@ -22,8 +32,17 @@ export function runSpeedtest(serverId, onEvent) {
     onEvent({ type: "status", data: JSON.parse(e.data) });
   });
 
+  eventSource.addEventListener("progress", (e) => {
+    onEvent({ type: "progress", data: JSON.parse(e.data) });
+  });
+
   eventSource.addEventListener("result", (e) => {
     onEvent({ type: "result", data: JSON.parse(e.data) });
+    eventSource.close();
+  });
+
+  eventSource.addEventListener("stopped", (e) => {
+    onEvent({ type: "stopped", data: JSON.parse(e.data) });
     eventSource.close();
   });
 
