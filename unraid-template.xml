@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>Unraid-Speedtest</Name>
+  <Repository>ghcr.io/murtaza911/unraid-speedtest:latest</Repository>
+  <Registry>https://github.com/murtaza911/Unraid-Speedtest/pkgs/container/unraid-speedtest</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/murtaza911/Unraid-Speedtest/issues</Support>
+  <Project>https://github.com/murtaza911/Unraid-Speedtest</Project>
+  <Overview>Self-hosted speed test dashboard using Ookla's official CLI. Run tests with a live animated UI, track results over time with charts, save favorite servers, and schedule recurring tests. Dark minimal interface.</Overview>
+  <Category>Network:Other Tools:</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/murtaza911/Unraid-Speedtest/main/icon.png</Icon>
+  <TemplateURL>https://raw.githubusercontent.com/murtaza911/Unraid-Speedtest/main/unraid-template.xml</TemplateURL>
+  <Shell>bash</Shell>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+
+  <Config Name="WebUI Port"
+          Target="8080"
+          Default="8080"
+          Mode="tcp"
+          Description="Port to access the speed test web interface."
+          Type="Port"
+          Display="always"
+          Required="true"
+          Mask="false">8080</Config>
+
+  <Config Name="Data Storage"
+          Target="/data"
+          Default="/mnt/user/appdata/unraid-speedtest"
+          Mode="rw"
+          Description="Persistent storage for the SQLite database containing test results, favorites, and scheduler config."
+          Type="Path"
+          Display="always"
+          Required="true"
+          Mask="false">/mnt/user/appdata/unraid-speedtest</Config>
+
+  <Config Name="Timezone"
+          Target="TZ"
+          Default="America/New_York"
+          Mode=""
+          Description="Timezone for timestamps (e.g. America/New_York, Europe/London, Asia/Tokyo)."
+          Type="Variable"
+          Display="always"
+          Required="false"
+          Mask="false">America/New_York</Config>
+</Container>

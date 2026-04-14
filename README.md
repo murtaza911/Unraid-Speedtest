@@ -42,17 +42,32 @@ docker run -d \
   unraid-speedtest
 ```
 
-### Unraid
+### Unraid (with template UI)
 
-1. Copy the project to your Unraid server (or clone via the terminal)
-2. From the project directory, run `docker compose up -d`
-3. Access at **http://your-unraid-ip:8080**
+1. In Unraid, go to the **Docker** tab and click **Add Container**
+2. Click **Template Repositories** and add:
+   ```
+   https://github.com/murtaza911/Unraid-Speedtest
+   ```
+3. Select **Unraid-Speedtest** from the template dropdown
+4. Configure the port, data path, and timezone using the familiar Unraid edit UI
+5. Click **Apply**
+
+This gives you the standard Unraid settings panel where you can change the port, data directory, and timezone without editing any files.
+
+**Alternative — Docker Compose:**
+
+```bash
+git clone https://github.com/murtaza911/Unraid-Speedtest.git
+cd Unraid-Speedtest
+docker compose up -d
+```
 
 The SQLite database is stored at `/data/speedtest.db` inside the container. Mount a volume to persist results across container restarts:
 
 ```yaml
 volumes:
-  - /mnt/user/appdata/speedtest:/data
+  - /mnt/user/appdata/unraid-speedtest:/data
 ```
 
 ## Configuration
