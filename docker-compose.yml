@@ -1,0 +1,14 @@
+services:
+  speedtest:
+    build: .
+    container_name: speedtest
+    ports:
+      - "8080:8080"
+    volumes:
+      - speedtest-data:/data
+    environment:
+      - TZ=America/Los_Angeles
+    restart: unless-stopped
+
+volumes:
+  speedtest-data:
