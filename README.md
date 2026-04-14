@@ -42,18 +42,18 @@ docker run -d \
   unraid-speedtest
 ```
 
-### Unraid (with template UI)
+### Unraid (recommended)
 
-1. In Unraid, go to the **Docker** tab and click **Add Container**
-2. Click **Template Repositories** and add:
+1. Open the Unraid terminal and run:
+   ```bash
+   wget -O /boot/config/plugins/dockerMan/templates-user/unraid-speedtest.xml https://raw.githubusercontent.com/murtaza911/Unraid-Speedtest/main/unraid-template.xml
    ```
-   https://github.com/murtaza911/Unraid-Speedtest
-   ```
-3. Select **Unraid-Speedtest** from the template dropdown
+2. Go to **Docker** tab > **Add Container**
+3. Select **Unraid-Speedtest** from the **Template** dropdown
 4. Configure the port, data path, and timezone using the familiar Unraid edit UI
 5. Click **Apply**
 
-This gives you the standard Unraid settings panel where you can change the port, data directory, and timezone without editing any files.
+This gives you the standard Unraid settings panel where you can change the port, data directory, and timezone without editing any files. The template persists across reboots.
 
 **Alternative — Docker Compose:**
 
