@@ -4,8 +4,10 @@ import tempfile
 
 import pytest
 import pytest_asyncio
+from httpx import AsyncClient, ASGITransport
 
 from app.database import Database
+from app.main import create_app
 
 
 @pytest.fixture(scope="session")
@@ -23,3 +25,12 @@ async def db():
         await database.init()
         yield database
         await database.close()
+
+
+@pytest_asyncio.fixture
+async def client(db):
+    app = create_app(db)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        c.app = app  # expose app for patching in tests
+        yield c
